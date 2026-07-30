@@ -219,3 +219,4 @@ def main():
         email="jaharri1@ulaberta.ca"
     )
 
+main()
