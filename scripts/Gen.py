@@ -27,11 +27,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
 import reinvent
 from reinvent.notebooks import load_tb_data, plot_scalars, get_image, create_mol_grid
 from reinvent.scoring.transforms import ReverseSigmoid
 from reinvent.scoring.transforms.sigmoids import Parameters as SigmoidParameters
-
+"""
 import ipywidgets as widgets
 
 # ── Molecular feature extraction ───────────────────────────────────────────────
