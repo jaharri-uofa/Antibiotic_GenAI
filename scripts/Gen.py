@@ -6,10 +6,12 @@ Author: Jordan Harrison
 '''
 
 import importlib
-
+'''
 for pkg in ["reinvent", "tensorboard", "mols2grid", "seaborn", "ipywidgets"]:
     found = importlib.util.find_spec(pkg) is not None
     print(f"{'OK     ' if found else 'MISSING'} {pkg}")
+
+    '''
 
 # +
 import os
