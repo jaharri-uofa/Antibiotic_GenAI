@@ -27,14 +27,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-"""
-import reinvent
-from reinvent.notebooks import load_tb_data, plot_scalars, get_image, create_mol_grid
-from reinvent.scoring.transforms import ReverseSigmoid
-from reinvent.scoring.transforms.sigmoids import Parameters as SigmoidParameters
-"""
-import ipywidgets as widgets
-
 # ── Molecular feature extraction ───────────────────────────────────────────────
 
 def molecule_features(smiles: str) -> dict | None:
@@ -57,7 +49,19 @@ def molecule_features(smiles: str) -> dict | None:
         "SlogP":            rdMolDescriptors.CalcCrippenDescriptors(mol)[0],
     }
 
-def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, time, account, email):
+def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, time, account, email, stage):
+    if stage not in ['RL_prep', 'TL', 'RL_gen']:
+        raise ValueError("Invalid stage. Must be one of: 'RL_prep', 'TL', 'RL_gen'.")
+    elif stage == 'RL_prep':
+        line = f"reinvent -l {stage}.log reinvent_pubchem.toml"
+    elif stage == 'TL':
+        line = f"reinvent -l {stage}.log reinvent_glpg.toml"
+    # Figure out checkpoint selection...
+    """
+    elif stage == "RL_gen":
+        line = f"reinvent -l {stage}.log PICKME!"
+    """
+
     batch_content = f"""
 #!/bin/bash
 #SBATCH --job-name={job_name}
@@ -67,9 +71,9 @@ def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, tim
 #SBATCH --mem={mem}
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --time={time}
-#SBATCH --account=def-aminpour
+#SBATCH --account={account}
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=jaharri1@ualberta.ca
+#SBATCH --mail-user={email}
 
 jobid=$SLURM_JOB_ID
 
@@ -84,139 +88,69 @@ module load python/3.11.5
 module load scipy-stack/2023b
 module load rdkit/2024.09.6
 module load python-build-bundle/2025b
-echo "modules loaded."
+echo "Modules loaded."
 
 echo "Activating virtual environment..."
 source ~/reinvent4/bin/activate
 export PATH=$HOME/.local/bin:$PATH
 echo "Virtual environment activated."
 
-### Stage 1: Reinforcement learning for drug like molecules
-echo "Running Stage 1: Reinforcement learning for drug like molecules"
-reinvent -l stage1.log stage1_RL.toml
-echo "Stage 1 completed."
-"""
-    with open("reinvent_RL.sh", "w") as f:
+echo "Running REINVENT4. Stage {stage}."
+{line}
+    """
+    
+    with open(f"{stage}.sh", "w") as f:
         f.write(batch_content)
 
 def main():
 
-    # Stage 0: Setup Device
+    # Reinforcement lerning on pubchem data set -> transfer learnin using GLPG inhibitors -> RL to generate novel GLPG inhibitors
+    # Guard clasues in slurm script ie
+        # reinvent rl (arguments?)
+        # python gen.py -- smiles_csv=glpg_inhibitors.csv --stage = TL (hard code TOML file names?)
+        # reinvent tl
+        # python gen.py -- stage RL
+        # reinvent genAI
+        # python gen.py --analysis?
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
-    if device == False:
-        print("Device not detected, please check cuda installation and reload proper modules")
+    parser = argparse.ArgumentParser(description='Generate REINVENT4 TOML for TL and RL to generate novel GlpG inhibitors.')
 
-    parser = argparse.ArgumentParser(
-            description='Build and submit a REINVENT job (with optional TL fine-tuning).'
-        )
-    parser.add_argument('--smiles_csv',   required=True,
-                            help='SMILES file (CSV format, column name = smiles).')
-    parser.add_argument('--output_toml',  default='sampling.toml',
-                            help='Output RL TOML filename.')
-    parser.add_argument('--slurm_script', default='submit_reinvent.sh',
-                            help='Output SLURM script filename.')
+    # CSV file only required for transfer learning stage of the procedure
+    parser.add_argument('--smiles_csv', required=False, help='Path to the input CSV file containing known GlpG inhibitors (column name = smiles).')
 
-    wd = os.getcwd()
-    top = os.path.abspath(os.path.join(reinvent.__path__[0], ".."))
-    top
+    parser.add_argument('--stage', required=True, choices=['RL_prep', 'TL', 'RL_gen'], help='Stage of the process: RL_prep, TL, or RL_gen.')
 
-    #load csv, and extract features
-    df = pd.read_csv(args.smiles_csv)
-    smiles = np.array(df['smiles'])
+    parser.add_argument('--prior', required=False, help='Path to the prior model file.')
 
-    # debug 
-    print(smiles)
-    # I think this is how arrays work...
-    molecular_features = molecule_features(smiles)
-    print (molecular_features)
+    args = parser.parse_args()
 
-    # Stage 1: Reinforcement learning for drug like molecules
-    """
-    Objective: establish a baseline for the RL model to create "drug like" molecules. 
-    """
+    if args.stage == 'RL_prep':
+        '''
+        Setup Device
+        1. Check for CUDA availability and set the device accordingly.
+        2. Print the device being used.
+        3. If CUDA is not available, print a warning message.
+        '''
+        write_batch_file(job_name="reinvent_RL_prep",
+                         output_file="reinvent_RL_prep.out",
+                         error_file="reinvent_RL_prep.err", 
+                         gpu_type="nvidia_h100_80gb_hbm3_1g.10gb:1",
+                         mem="16G",
+                         cpus="1",
+                         time="0-04:00",
+                         account="def-aminpour",
+                         email="jaharri1@ualberta.ca",
+                         stage="RL_prep")
 
-    prior_filename = os.path.abspath(os.path.join(reinvent.__path__[0], "..", "priors", "reinvent.prior"))
-    agent_filename = prior_filename
+        print("Submitting RL_prep job to SLURM...")
+        subprocess.run(["sbatch", "RL_prep.sh"])
 
-    stage1_checkpoint = "stage1.chkpt"
-    stage1_summary_csv_prefix = "stage1_RL"
+    elif args.stage == 'TL':
+        pass
 
-    stage1_parameters = f"""
-    run_type = "staged_learning"
-    device = "{device}"
-    tb_logdir = "tb_stage1"
-    json_out_config = "_stage1.json"
-
-    [parameters]
-
-    prior_file = "{prior_filename}"
-    agent_file = "{agent_filename}"
-    summary_csv_prefix = "{stage1_summary_csv_prefix}"
-
-    batch size = 128
-
-    use checkpoints = false
-
-    [learning strategy]
-
-    type = 'dap'
-    sigma = 128
-    rate = 0.0001
-
-    [[stage]]
-
-    max score = 1.0
-    max steps = 300
-
-    chkpt_file = "{stage1_checkpoint}"
-
-    [stage.scoring]
-    type = "geometric mean"and
-
-    [[stage.scoring.component]]
-    [stage.scoring.component.custom alerts]
-
-    [[stage.scoring.component.custom_alerts.endpoints]]
-    name = "Alerts"
-
-    [[stage.scoring.component]]
-    [stage.scoring.component.QED]
-
-    [[stage.scoring.component.QED.endpoint]]
-    name = "QED"
-    weight = 0.6
-
-
-    [[stage.scoring.component]]
-    [stage.scoring.component.NumAtomStereoCenters]
-
-    [[stage.scoring.component.NumAtomStereoCenters.endpoint]]
-    name = "Stereo"
-    weight = 0.4
-
-    transform.type = "left_step"
-    transform.low = 0
-    """
-
-    stage1_toml_filename = "stage1_RL.toml"
-    with open(stage1_toml_filename, "w") as f:
-        f.write(stage1_parameters)
-
-    print(f"Stage 1 RL TOML file written to {stage1_toml_filename}")
-
-    #launch the SLURM job
-    write_batch_file( 
-        job_name="reinvent_RL",
-        output_file="reinvent_RL.out",
-        error_file="reinvent_RL.err",
-        gpu_type="nvidia_h100_80gb_hbm3_1g.10gb:1",
-        mem="32G",
-        cpus=4,
-        time="24:00:00",
-        account="def-aminpour",
-        email="jaharri1@ulaberta.ca"
-    )
+    elif args.stage == 'RL_gen':
+        pass
+    
+    
 
 main()
