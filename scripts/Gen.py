@@ -53,9 +53,9 @@ def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, tim
     if stage not in ['RL_prep', 'TL', 'RL_gen']:
         raise ValueError("Invalid stage. Must be one of: 'RL_prep', 'TL', 'RL_gen'.")
     elif stage == 'RL_prep':
-        line = f"reinvent -l {stage}.log reinvent_pubchem.toml"
+        line = f"reinvent -l {stage}.log {stage}.toml"
     elif stage == 'TL':
-        line = f"reinvent -l {stage}.log reinvent_glpg.toml"
+        line = f"reinvent -l {stage}.log {stage}.toml"
     # Figure out checkpoint selection...
     """
     elif stage == "RL_gen":
