@@ -131,6 +131,84 @@ def main():
         2. Print the device being used.
         3. If CUDA is not available, print a warning message.
         '''
+        stage1_parameters = f"""
+run_type = "staged_learning"
+device = "cuda:0"
+tb_logdir = "tb_stage1"
+json_out_config = "_stage1.json"
+
+[parameters]
+
+prior_file = "{args.prior}"
+agent_file = "{args.prior}"
+summary_csv_prefix = "{args.stage}"
+
+batch_size = 100
+
+use_checkpoint = false
+
+[learning_strategy]
+
+type = "dap"
+sigma = 128
+rate = 0.0001
+
+[[stage]]
+
+max_score = 1.0
+max_steps = 300
+
+chkpt_file = "{args.prior}"
+
+[stage.scoring]
+type = "geometric_mean"
+
+[[stage.scoring.component]]
+[stage.scoring.component.custom_alerts]
+
+[[stage.scoring.component.custom_alerts.endpoint]]
+name = "Alerts"
+
+params.smarts = [
+    "[*;r{{8-17}}]",
+    "[#8][#8]",
+    "[#6;+]",
+    "[#16][#16]",
+    "[#7;!n][S;!$(S(=O)=O)]",
+    "[#7;!n][#7;!n]",
+    "C#C",
+    "C(=[O,S])[O,S]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
+]
+
+[[stage.scoring.component]]
+[stage.scoring.component.QED]
+
+[[stage.scoring.component.QED.endpoint]]
+name = "QED"
+weight = 0.6
+
+
+[[stage.scoring.component]]
+[stage.scoring.component.NumAtomStereoCenters]
+
+[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
+name = "Stereo"
+weight = 0.4
+
+transform.type = "left_step"
+transform.low = 0
+"""
+        stage1_config_filename = f"{args.stage}.toml"
+
+        with open(stage1_config_filename, "w") as tf:
+            tf.write(stage1_parameters)
+        
         write_batch_file(job_name="reinvent_RL_prep",
                          output_file="reinvent_RL_prep.out",
                          error_file="reinvent_RL_prep.err", 
