@@ -157,7 +157,7 @@ rate = 0.0001
 max_score = 1.0
 max_steps = 300
 
-chkpt_file = "{args.prior}"
+chkpt_file = "{args.stage}"
 
 [stage.scoring]
 type = "geometric_mean"
