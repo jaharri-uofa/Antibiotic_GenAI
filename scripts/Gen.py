@@ -62,12 +62,11 @@ def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, tim
         line = f"reinvent -l {stage}.log PICKME!"
     """
 
-    batch_content = f"""
-#!/bin/bash
+    batch_content = f"""#!/bin/bash
 #SBATCH --job-name={job_name}
 #SBATCH --output={output_file}
 #SBATCH --error={error_file}
-#SBATCH --gres={gpu_type}
+#SBATCH --gpus={gpu_type}
 #SBATCH --mem={mem}
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --time={time}
@@ -212,7 +211,7 @@ transform.low = 0
         write_batch_file(job_name="reinvent_RL_prep",
                          output_file="reinvent_RL_prep.out",
                          error_file="reinvent_RL_prep.err", 
-                         gpu_type="nvidia_h100_80gb_hbm3_1g.10gb:1",
+                         gpu_type="h100_1g.10gb:1",
                          mem="16G",
                          cpus="1",
                          time="0-04:00",
