@@ -138,9 +138,12 @@ def main():
         3. If CUDA is not available, print a warning message.
         '''
 
-        os.mkdir("Stage_1_RL_prep")
+        if not os.path.exists("Stage_1_RL_prep"):
+            os.mkdir("Stage_1_RL_prep")
+
+        shutil.copy(args.prior, "Stage_1_RL_prep/")
         os.chdir("Stage_1_RL_prep")
-        shutil.copy(args.prior, os.getcwd())
+        
 
         stage1_parameters = f"""
 run_type = "staged_learning"
