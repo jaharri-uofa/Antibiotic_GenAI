@@ -27,6 +27,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+modules = "StdEnv/2023 openbabel/3.1.1 gcc/12.3 cmake cuda/12.6 python/3.11.5 scipy-stack/2023b rdkit/2024.09.6 python-build-bundle/2025b"
+
 # ── Molecular feature extraction ───────────────────────────────────────────────
 
 def molecule_features(smiles: str) -> dict | None:
@@ -124,6 +126,9 @@ def main():
     parser.add_argument('--checkpoint', required=False, help='Path to prior-stage checkpoint file (used as input_model_file for TL, agent_file for RL_gen).')
 
     args = parser.parse_args()
+
+    # Load necessary modules for cluster to not die
+    os.system(f"module load {modules}")
 
     if args.stage == 'RL_prep':
         '''
