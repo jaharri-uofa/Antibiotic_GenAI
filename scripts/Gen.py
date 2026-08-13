@@ -140,7 +140,7 @@ def main():
 
         os.mkdir("Stage_1_RL_prep")
         os.chdir("Stage_1_RL_prep")
-
+        shutil.copy(args.prior, os.getcwd())
 
         stage1_parameters = f"""
 run_type = "staged_learning"
