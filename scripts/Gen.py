@@ -121,6 +121,8 @@ def main():
 
     parser.add_argument('--prior', required=False, help='Path to the prior model file.')
 
+    parser.add_argument('--checkpoint', required=False, help='Path to prior-stage checkpoint file (used as input_model_file for TL, agent_file for RL_gen).')
+
     args = parser.parse_args()
 
     if args.stage == 'RL_prep':
@@ -130,6 +132,11 @@ def main():
         2. Print the device being used.
         3. If CUDA is not available, print a warning message.
         '''
+
+        os.mkdir("Stage_1_RL_prep")
+        os.chdir("Stage_1_RL_prep")
+
+
         stage1_parameters = f"""
 run_type = "staged_learning"
 device = "cuda:0"
@@ -144,7 +151,7 @@ summary_csv_prefix = "{args.stage}"
 
 batch_size = 100
 
-use_checkpoint = false
+use_checkpoint = true
 
 [learning_strategy]
 
@@ -157,7 +164,7 @@ rate = 0.0001
 max_score = 1.0
 max_steps = 300
 
-chkpt_file = "{args.stage}"
+chkpt_file = "RL_prep.chkpt"
 
 [stage.scoring]
 type = "geometric_mean"
@@ -223,7 +230,76 @@ transform.low = 0
         subprocess.run(["sbatch", "RL_prep.sh"])
 
     elif args.stage == 'TL':
-        pass
+        if not args.smiles_csv:
+            raise ValueError("The --smiles_csv argument is required for the TL stage.")
+
+        os.mkdir("Stage_2_TL")
+        os.chdir("Stage_2_TL")
+
+        # Read the CSV file and extract SMILES strings
+        df = pd.read_csv(args.smiles_csv)
+        if 'smiles' not in df.columns:
+            raise ValueError("The input CSV must contain a 'smiles' column.")
+        
+        smiles_list = df['smiles'].dropna().tolist()
+        print(f"Extracted {len(smiles_list)} SMILES strings from {args.smiles_csv}.")
+
+        # Split smiles into training and validation sets (80% train, 20% validation, chosen arbitrarily will check back to see if this is good) 
+        smiles_list = np.random.Generator.shuffle(np.array(smiles_list))
+        train_size = int(0.8 * len(smiles_list))
+        val_size = len(smiles_list) - train_size
+        print(f" Training set size: {train_size}, Validation set size: {val_size}")
+
+        train_smiles = smiles_list[:train_size]
+        val_smiles = smiles_list[train_size:]
+        with open ("train_smiles.smi", "w") as file:
+            for smi in train_smiles:
+                file.write(f"{smi}\n")
+        with open ("val_smiles.smi", "w") as file:
+            for smi in val_smiles:
+                file.write(f"{smi}\n")
+        # Generate TOML configuration for Transfer Learning
+        stage2_parameters = f"""
+        run_type = "transfer_learning"
+device = "cuda:0"
+tb_logdir = "tb_TL"
+
+
+[parameters]
+
+num_epochs = 50
+save_every_n_epochs = 2
+batch_size = 100
+sample_batch_size = 2000
+
+input_model_file = "{args.checkpoint}"
+output_model_file = "TL_reinvent.model"
+smiles_file = "train_smiles.smi"
+validation_smiles_file = "val_smiles.smi"
+standardize_smiles = true
+randomize_smiles = true
+randomize_all_smiles = false
+internal_diversity = true
+"""
+    
+        stage2_config_filename = f"{args.stage}.toml"
+
+        with open(stage2_config_filename, "w") as tf:
+            tf.write(stage2_parameters)
+        
+        write_batch_file(job_name="reinvent_TL",
+                         output_file="reinvent_TL.out",
+                         error_file="reinvent_TL.err", 
+                         gpu_type="h100_1g.10gb:1",
+                         mem="16G",
+                         cpus="1",
+                         time="0-04:00",
+                         account="def-aminpour",
+                         email="jaharri1@ualberta.ca",
+                         stage="TL")
+
+        print("Submitting TL job to SLURM...")
+        subprocess.run(["sbatch", "TL.sh"])
 
     elif args.stage == 'RL_gen':
         pass
