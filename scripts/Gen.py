@@ -256,7 +256,7 @@ transform.low = 0
         print(f"Extracted {len(smiles_list)} SMILES strings from {args.smiles_csv}.")
 
         # Split smiles into training and validation sets (80% train, 20% validation, chosen arbitrarily will check back to see if this is good) 
-        smiles_list = np.random.Generator.shuffle(np.array(smiles_list))
+        smiles_list = np.random.Generator.shuffle((smiles_list))
         train_size = int(0.8 * len(smiles_list))
         val_size = len(smiles_list) - train_size
         print(f" Training set size: {train_size}, Validation set size: {val_size}")
