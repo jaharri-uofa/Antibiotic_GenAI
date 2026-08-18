@@ -240,9 +240,12 @@ transform.low = 0
     elif args.stage == 'TL':
         if not args.smiles_csv:
             raise ValueError("The --smiles_csv argument is required for the TL stage.")
-
-        os.mkdir("Stage_2_TL")
+        if not os.path.exists("Stage_2_TL"):
+            os.mkdir("Stage_2_TL")
+        shutil.copy(args.checkpoint, "Stage_2_TL/")
+        shutil.copy(args.smiles_csv, "Stage_2_TL/")
         os.chdir("Stage_2_TL")
+        print(f"Current working directory: {os.getcwd()}")
 
         # Read the CSV file and extract SMILES strings
         df = pd.read_csv(args.smiles_csv)
