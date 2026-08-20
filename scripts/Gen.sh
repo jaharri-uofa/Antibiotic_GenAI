@@ -24,19 +24,23 @@ source ~/reinvent4/bin/activate
 export PATH=$HOME/.local/bin:$PATH
 echo "Virtual environment activated."
 
-pwd
 echo "Running REINVENT4. Stage = Pubchem Dataset Training."
 python scripts/Gen.py --stage RL_prep --prior reinvent_pubchem.prior
+cd Stage_1_RL_prep
 reinvent -l RL_prep.log RL_prep.toml
 echo "Exit code: $?"
+cd ..
 
 echo "Running REINVENT4. Stage = Transfer Learning"
 python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
+cd Stage_2_TL
 reinvent -l TL.log TL.toml
 echo "Exit code: $?"
+cd ..
 
 echo "Running REINVNENT4. Stage = Reinforcement Learning"
 python scripts/Gen.py --stage RL_gen --prior reinvent_pubchem.prior
+cd Stage_3_RLgen
 reinvent -l RL_gen.log RL_gen.toml
 echo "Exit code: $?"
 echo "Run Complete. Check the log files for details."
