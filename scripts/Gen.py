@@ -495,7 +495,7 @@ def main():
                     "purge_memories":     False,
                     "prior_file":         args.prior,         # always the base prior
                     "agent_file":         best_checkpoint_path,    # TL output (or base prior if no TL)
-                    "batch_size":         256,
+                    "batch_size":         2048,
                     "unique_sequences":   True,
                     "randomize_smiles":   True,
                     "tb_isim":            False,
@@ -507,7 +507,7 @@ def main():
                     "sigma": 256,
                     "rate":  0.0001,
                 },
-                
+
                 "diversity_filter": {
                     "type":               "ScaffoldSimilarity",
                     "bucket_size":        100,
@@ -515,20 +515,6 @@ def main():
                     "minsimilarity":      0.3,
                     "penalty_multiplier": 1.0,
                 },
-
-                "stage": [
-                    {
-                        "chkpt_file": "RL_gen.chkpt",
-                        "termination": "simple",
-                        "max_score": 0.8,
-                        "min_steps": 50,
-                        "max_steps": 300,
-                        "scoring": {
-                            "type": "geometric_mean",
-                            "component": build_gen_scoring_components(),
-                        },
-                    }
-                ],
             }
         
         with open("RL_gen.toml", 'w') as f:
