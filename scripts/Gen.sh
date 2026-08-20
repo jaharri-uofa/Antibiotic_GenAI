@@ -5,7 +5,7 @@
 #SBATCH --gpus=nvidia_h100_80gb_hbm3_1g.10gb:1
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
-#SBATCH --time=0-04:00:00
+#SBATCH --time=0-03:00:00
 #SBATCH --account=def-aminpour
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jaharri1@ualberta.ca
@@ -24,19 +24,23 @@ source ~/reinvent4/bin/activate
 export PATH=$HOME/.local/bin:$PATH
 echo "Virtual environment activated."
 
-echo "Running REINVENT4. Stage = Pubchem Dataset Training."
-python scripts/Gen.py --stage RL_prep --prior reinvent_pubchem.prior
-cd Stage_1_RL_prep
-reinvent -l RL_prep.log RL_prep.toml
-echo "Exit code: $?"
-cd ..
+if [[ ! -d "Stage_1_RL_prep" ]]; then
+    echo "Running REINVENT4. Stage = Pubchem Dataset Training."
+    python scripts/Gen.py --stage RL_prep --prior reinvent_pubchem.prior
+    cd Stage_1_RL_prep
+    reinvent -l RL_prep.log RL_prep.toml
+    echo "Exit code: $?"
+    cd ..
+fi
 
-echo "Running REINVENT4. Stage = Transfer Learning"
-python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
-cd Stage_2_TL
-reinvent -l TL.log TL.toml
-echo "Exit code: $?"
-cd ..
+if [[ ! -d "Stage_2_TL" ]]; then
+    echo "Running REINVENT4. Stage = Transfer Learning."
+    python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
+    cd Stage_2_TL
+    reinvent -l TL.log TL.toml
+    echo "Exit code: $?"
+    cd ..
+fi
 
 echo "Running REINVNENT4. Stage = Reinforcement Learning"
 python scripts/Gen.py --stage RL_gen --prior reinvent_pubchem.prior
