@@ -484,41 +484,60 @@ def main():
         print(f"Current working directory: {os.getcwd()}")
 
         config = {
-            "run_type":       "staged_learning",
-                "device":         "cuda:0",
-                "tb_logdir":      "tb_logs",
-                "json_out_config": "RL_gen.json",
-                "parameters": {
+            "run_type": "staged_learning",
+            "device": "cuda:0",
+            "tb_logdir": "tb_logs",
+            "json_out_config": "RL_gen.json",
 
-                    "summary_csv_prefix": "RL_gen",
-                    "use_checkpoint":     False,
-                    "purge_memories":     False,
-                    "prior_file":         args.prior,         # always the base prior
-                    "agent_file":         best_checkpoint_path,    # TL output (or base prior if no TL)
-                    "batch_size":         2048,
-                    "unique_sequences":   True,
-                    "randomize_smiles":   True,
-                    "tb_isim":            False,
-                },
+            "parameters": {
+                "summary_csv_prefix": "RL_gen",
+                "use_checkpoint": False,
+                "purge_memories": False,
 
-                "learning_strategy": {
+                # Base prior provides the original REINVENT chemistry
+                "prior_file": args.prior,
 
-                    "type":  "dap",
-                    "sigma": 256,
-                    "rate":  0.0001,
-                },
+                # TL-trained agent provides the GlpG inhibitor chemistry
+                "agent_file": best_checkpoint_path,
 
-                "diversity_filter": {
-                    "type":               "ScaffoldSimilarity",
-                    "bucket_size":        100,
-                    "minscore":           0.7,
-                    "minsimilarity":      0.3,
-                    "penalty_multiplier": 1.0,
-                },
-            }
-        
-        with open("RL_gen.toml", 'w') as f:
-                toml.dump(config, f)
+                "batch_size": 2048,
+                "unique_sequences": True,
+                "randomize_smiles": True,
+                "tb_isim": False,
+            },
+
+            "learning_strategy": {
+                "type": "dap",
+                "sigma": 256,
+                "rate": 0.0001,
+            },
+
+            "stage": [
+                {
+                    "max_score": 1.0,
+                    "max_steps": 5000,
+
+                    "chkpt_file": "RL_gen.chkpt",
+
+                    "diversity_filter": {
+                        "type": "ScaffoldSimilarity",
+                        "bucket_size": 100,
+                        "minscore": 0.7,
+                        "minsimilarity": 0.3,
+                        "penalty_multiplier": 1.0,
+                    },
+
+                    "scoring": {
+                        "type": "geometric_mean",
+
+                        "component": build_gen_scoring_components(),
+                    },
+                }
+            ],
+        }
+
+        with open("RL_gen.toml", "w") as f:
+            toml.dump(config, f)
      
         pass
     
