@@ -24,7 +24,7 @@ source ~/reinvent4/bin/activate
 export PATH=$HOME/.local/bin:$PATH
 echo "Virtual environment activated."
 
-if [[ ! -d "Stage_1_RL_prep" ]]; then
+if [[ ! -e "Stage_1_RL_prep/RL_prep.chkpt" ]]; then
     echo "Running REINVENT4. Stage = Pubchem Dataset Training."
     python scripts/Gen.py --stage RL_prep --prior reinvent_pubchem.prior
     cd Stage_1_RL_prep
@@ -33,7 +33,7 @@ if [[ ! -d "Stage_1_RL_prep" ]]; then
     cd ..
 fi
 
-if [[ ! -d "Stage_2_TL" ]]; then
+if [[ -e "Stage_1_RL_prep/RL_prep.chkpt" ]]; then
     echo "Running REINVENT4. Stage = Transfer Learning."
     python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
     cd Stage_2_TL
@@ -42,9 +42,11 @@ if [[ ! -d "Stage_2_TL" ]]; then
     cd ..
 fi
 
-echo "Running REINVNENT4. Stage = Reinforcement Learning"
-python scripts/Gen.py --stage RL_gen --prior reinvent_pubchem.prior
-cd Stage_3_RLgen
-reinvent -l RL_gen.log RL_gen.toml
-echo "Exit code: $?"
-echo "Run Complete. Check the log files for details."
+if [[ -e "Stage_2_TL/TL_reinvent.model.50.chkpt" ]]; then
+    echo "Running REINVNENT4. Stage = Reinforcement Learning"
+    python scripts/Gen.py --stage RL_gen --prior reinvent_pubchem.prior
+    cd Stage_3_RLgen
+    reinvent -l RL_gen.log RL_gen.toml
+    echo "Exit code: $?"
+    echo "Run Complete. Check the log files for details."
+fi

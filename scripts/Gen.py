@@ -271,8 +271,8 @@ def main():
                     "summary_csv_prefix": "RL_gen",
                     "use_checkpoint":     False,
                     "purge_memories":     False,
-                    "prior_file":         {args.prior},         # always the base prior
-                    "agent_file":         {best_checkpoint_path},    # TL output (or base prior if no TL)
+                    "prior_file":         args.prior,         # always the base prior
+                    "agent_file":         best_checkpoint_path,    # TL output (or base prior if no TL)
                     "batch_size":         256,
                     "unique_sequences":   True,
                     "randomize_smiles":   True,
