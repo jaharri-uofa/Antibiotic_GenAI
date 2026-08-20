@@ -51,18 +51,7 @@ def molecule_features(smiles: str) -> dict | None:
         "SlogP":            rdMolDescriptors.CalcCrippenDescriptors(mol)[0],
     }
 
-def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, time, account, email, stage):
-    if stage not in ['RL_prep', 'TL', 'RL_gen']:
-        raise ValueError("Invalid stage. Must be one of: 'RL_prep', 'TL', 'RL_gen'.")
-    elif stage == 'RL_prep':
-        line = f"reinvent -l {stage}.log {stage}.toml"
-    elif stage == 'TL':
-        line = f"reinvent -l {stage}.log {stage}.toml"
-    # Figure out checkpoint selection...
-    """
-    elif stage == "RL_gen":
-        line = f"reinvent -l {stage}.log PICKME!"
-    """
+def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, time, account, email):
 
     batch_content = f"""#!/bin/bash
         #SBATCH --job-name={job_name}
@@ -88,8 +77,8 @@ def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, tim
         export PATH=$HOME/.local/bin:$PATH
         echo "Virtual environment activated."
 
-        echo "Running REINVENT4. Stage {stage}."
-        {line}
+        echo "Running REINVENT4. Stage."
+        
     """
     
     with open(f"{stage}.sh", "w") as f:
@@ -214,20 +203,6 @@ def main():
 
         with open(stage1_config_filename, "w") as tf:
             tf.write(stage1_parameters)
-        
-        write_batch_file(job_name="reinvent_RL_prep",
-                         output_file="reinvent_RL_prep.out",
-                         error_file="reinvent_RL_prep.err", 
-                         gpu_type="h100_1g.10gb:1",
-                         mem="16G",
-                         cpus="1",
-                         time="0-04:00",
-                         account="def-aminpour",
-                         email="jaharri1@ualberta.ca",
-                         stage="RL_prep")
-
-        print("Submitting RL_prep job to SLURM...")
-        subprocess.run(["sbatch", "RL_prep.sh"])
 
     elif args.stage == 'TL':
         if not args.smiles_csv:
@@ -293,20 +268,6 @@ def main():
 
         with open(stage2_config_filename, "w") as tf:
             tf.write(stage2_parameters)
-        
-        write_batch_file(job_name="reinvent_TL",
-                         output_file="reinvent_TL.out",
-                         error_file="reinvent_TL.err", 
-                         gpu_type="h100_1g.10gb:1",
-                         mem="16G",
-                         cpus="1",
-                         time="0-04:00",
-                         account="def-aminpour",
-                         email="jaharri1@ualberta.ca",
-                         stage="TL")
-
-        print("Submitting TL job to SLURM...")
-        subprocess.run(["sbatch", "TL.sh"])
 
     elif args.stage == 'RL_gen':
         # Find best checkpoint
@@ -373,6 +334,4 @@ def main():
      
         pass
     
-    
-
 main()
