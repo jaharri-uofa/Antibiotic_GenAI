@@ -2,8 +2,8 @@
 #SBATCH --job-name=REINVENT
 #SBATCH --output=reinvent.out
 #SBATCH --error=reinvent.err
-#SBATCH --gpus=h100_2g.20gb:1
-#SBATCH --mem=4G
+#SBATCH --gpus==h100_3g.40gb:1
+#SBATCH --mem=16G
 #SBATCH --cpus-per-task=1
 #SBATCH --time=0-03:00:00
 #SBATCH --account=def-aminpour
