@@ -326,6 +326,7 @@ def main():
                 print(f"Best checkpoint path: {best_checkpoint_path}")
                 break
 
+        os.chdir("..")  # Move back to the main directory for RL_gen stage
         if not os.path.exists("Stage_3_RLgen"):
             os.mkdir("Stage_3_RLgen")
         shutil.copy(best_checkpoint_path, "Stage_3_RLgen/")
