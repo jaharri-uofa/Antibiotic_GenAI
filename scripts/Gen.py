@@ -51,39 +51,6 @@ def molecule_features(smiles: str) -> dict | None:
         "SlogP":            rdMolDescriptors.CalcCrippenDescriptors(mol)[0],
     }
 
-def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, time, account, email):
-
-    batch_content = f"""#!/bin/bash
-        #SBATCH --job-name={job_name}
-        #SBATCH --output={output_file}
-        #SBATCH --error={error_file}
-        #SBATCH --gpus={gpu_type}
-        #SBATCH --mem={mem}
-        #SBATCH --cpus-per-task={cpus}
-        #SBATCH --time={time}
-        #SBATCH --account={account}
-        #SBATCH --mail-type=ALL
-        #SBATCH --mail-user={email}
-
-        jobid=$SLURM_JOB_ID
-
-        echo "Loading modules..."
-        module --force purge 
-        {modules}
-        echo "Modules loaded."
-
-        echo "Activating virtual environment..."
-        source ~/reinvent4/bin/activate
-        export PATH=$HOME/.local/bin:$PATH
-        echo "Virtual environment activated."
-
-        echo "Running REINVENT4. Stage."
-        
-    """
-    
-    with open(f"{stage}.sh", "w") as f:
-        f.write(batch_content)
-
 def main():
 
     # Reinforcement lerning on pubchem data set -> transfer learnin using GLPG inhibitors -> RL to generate novel GLPG inhibitors
