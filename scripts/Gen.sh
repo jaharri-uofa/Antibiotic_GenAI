@@ -24,6 +24,7 @@ source ~/reinvent4/bin/activate
 export PATH=$HOME/.local/bin:$PATH
 echo "Virtual environment activated."
 
+pwd
 echo "Running REINVENT4. Stage = Pubchem Dataset Training."
 python scripts/Gen.py --stage RL_prep --prior reinvent_pubchem.prior
 reinvent -l RL_prep.log RL_prep.toml
