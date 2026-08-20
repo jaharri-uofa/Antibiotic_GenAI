@@ -290,10 +290,6 @@ def main():
                     "minsimilarity":      0.3,
                     "penalty_multiplier": 1.0,
                 },
-                "inception_parameters": {
-                    "memory_size": 50,
-                    "sample_size": 10,
-                }
             }
         
         with open("RL_gen.toml", 'w') as f:
