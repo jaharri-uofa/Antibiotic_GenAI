@@ -27,7 +27,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-modules = "StdEnv/2023 openbabel/3.1.1 gcc/12.3 cmake cuda/12.6 python/3.11.5 scipy-stack/2023b rdkit/2024.09.6 python-build-bundle/2025b"
+modules = "module load StdEnv/2023 openbabel/3.1.1 gcc/12.3 cmake cuda/12.6 python/3.11.5 scipy-stack/2023b rdkit/2024.09.6 python-build-bundle/2025b"
 
 # ── Molecular feature extraction ───────────────────────────────────────────────
 
@@ -65,39 +65,31 @@ def write_batch_file(job_name, output_file, error_file, gpu_type, mem, cpus, tim
     """
 
     batch_content = f"""#!/bin/bash
-#SBATCH --job-name={job_name}
-#SBATCH --output={output_file}
-#SBATCH --error={error_file}
-#SBATCH --gpus={gpu_type}
-#SBATCH --mem={mem}
-#SBATCH --cpus-per-task={cpus}
-#SBATCH --time={time}
-#SBATCH --account={account}
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user={email}
+        #SBATCH --job-name={job_name}
+        #SBATCH --output={output_file}
+        #SBATCH --error={error_file}
+        #SBATCH --gpus={gpu_type}
+        #SBATCH --mem={mem}
+        #SBATCH --cpus-per-task={cpus}
+        #SBATCH --time={time}
+        #SBATCH --account={account}
+        #SBATCH --mail-type=ALL
+        #SBATCH --mail-user={email}
 
-jobid=$SLURM_JOB_ID
+        jobid=$SLURM_JOB_ID
 
-echo "Loading modules..."
-module --force purge 
-module load StdEnv/2023
-module load openbabel/3.1.1
-module load gcc/12.3
-module load cmake
-module load cuda/12.6
-module load python/3.11.5
-module load scipy-stack/2023b
-module load rdkit/2024.09.6
-module load python-build-bundle/2025b
-echo "Modules loaded."
+        echo "Loading modules..."
+        module --force purge 
+        {modules}
+        echo "Modules loaded."
 
-echo "Activating virtual environment..."
-source ~/reinvent4/bin/activate
-export PATH=$HOME/.local/bin:$PATH
-echo "Virtual environment activated."
+        echo "Activating virtual environment..."
+        source ~/reinvent4/bin/activate
+        export PATH=$HOME/.local/bin:$PATH
+        echo "Virtual environment activated."
 
-echo "Running REINVENT4. Stage {stage}."
-{line}
+        echo "Running REINVENT4. Stage {stage}."
+        {line}
     """
     
     with open(f"{stage}.sh", "w") as f:
@@ -146,78 +138,78 @@ def main():
         
 
         stage1_parameters = f"""
-run_type = "staged_learning"
-device = "cuda:0"
-tb_logdir = "tb_stage1"
-json_out_config = "_stage1.json"
+            run_type = "staged_learning"
+            device = "cuda:0"
+            tb_logdir = "tb_stage1"
+            json_out_config = "_stage1.json"
 
-[parameters]
+            [parameters]
 
-prior_file = "{args.prior}"
-agent_file = "{args.prior}"
-summary_csv_prefix = "{args.stage}"
+            prior_file = "{args.prior}"
+            agent_file = "{args.prior}"
+            summary_csv_prefix = "{args.stage}"
 
-batch_size = 100
+            batch_size = 100
 
-use_checkpoint = true
+            use_checkpoint = true
 
-[learning_strategy]
+            [learning_strategy]
 
-type = "dap"
-sigma = 128
-rate = 0.0001
+            type = "dap"
+            sigma = 128
+            rate = 0.0001
 
-[[stage]]
+            [[stage]]
 
-max_score = 1.0
-max_steps = 300
+            max_score = 1.0
+            max_steps = 300
 
-chkpt_file = "RL_prep.chkpt"
+            chkpt_file = "RL_prep.chkpt"
 
-[stage.scoring]
-type = "geometric_mean"
+            [stage.scoring]
+            type = "geometric_mean"
 
-[[stage.scoring.component]]
-[stage.scoring.component.custom_alerts]
+            [[stage.scoring.component]]
+            [stage.scoring.component.custom_alerts]
 
-[[stage.scoring.component.custom_alerts.endpoint]]
-name = "Alerts"
+            [[stage.scoring.component.custom_alerts.endpoint]]
+            name = "Alerts"
 
-params.smarts = [
-    "[*;r{{8-17}}]",
-    "[#8][#8]",
-    "[#6;+]",
-    "[#16][#16]",
-    "[#7;!n][S;!$(S(=O)=O)]",
-    "[#7;!n][#7;!n]",
-    "C#C",
-    "C(=[O,S])[O,S]",
-    "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
-    "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
-    "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
-    "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
-    "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
-    "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
-]
+            params.smarts = [
+                "[*;r{{8-17}}]",
+                "[#8][#8]",
+                "[#6;+]",
+                "[#16][#16]",
+                "[#7;!n][S;!$(S(=O)=O)]",
+                "[#7;!n][#7;!n]",
+                "C#C",
+                "C(=[O,S])[O,S]",
+                "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
+                "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
+                "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
+                "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
+                "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
+                "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
+            ]
 
-[[stage.scoring.component]]
-[stage.scoring.component.QED]
+            [[stage.scoring.component]]
+            [stage.scoring.component.QED]
 
-[[stage.scoring.component.QED.endpoint]]
-name = "QED"
-weight = 0.6
+            [[stage.scoring.component.QED.endpoint]]
+            name = "QED"
+            weight = 0.6
 
 
-[[stage.scoring.component]]
-[stage.scoring.component.NumAtomStereoCenters]
+            [[stage.scoring.component]]
+            [stage.scoring.component.NumAtomStereoCenters]
 
-[[stage.scoring.component.NumAtomStereoCenters.endpoint]]
-name = "Stereo"
-weight = 0.4
+            [[stage.scoring.component.NumAtomStereoCenters.endpoint]]
+            name = "Stereo"
+            weight = 0.4
 
-transform.type = "left_step"
-transform.low = 0
-"""
+            transform.type = "left_step"
+            transform.low = 0
+            """
         stage1_config_filename = f"{args.stage}.toml"
 
         with open(stage1_config_filename, "w") as tf:
@@ -275,27 +267,27 @@ transform.low = 0
                 file.write(f"{smi}\n")
         # Generate TOML configuration for Transfer Learning
         stage2_parameters = f"""
-        run_type = "transfer_learning"
-device = "cuda:0"
-tb_logdir = "tb_TL"
+            run_type = "transfer_learning"
+            device = "cuda:0"
+            tb_logdir = "tb_TL"
 
 
-[parameters]
+            [parameters]
 
-num_epochs = 50
-save_every_n_epochs = 2
-batch_size = 100
-sample_batch_size = 2000
+            num_epochs = 50
+            save_every_n_epochs = 2
+            batch_size = 100
+            sample_batch_size = 2000
 
-input_model_file = "{args.checkpoint}"
-output_model_file = "TL_reinvent.model"
-smiles_file = "train_smiles.smi"
-validation_smiles_file = "val_smiles.smi"
-standardize_smiles = true
-randomize_smiles = true
-randomize_all_smiles = false
-internal_diversity = true
-"""
+            input_model_file = "{(str(args.checkpoint)).split('/')[-1]}"
+            output_model_file = "TL_reinvent.model"
+            smiles_file = "train_smiles.smi"
+            validation_smiles_file = "val_smiles.smi"
+            standardize_smiles = true
+            randomize_smiles = true
+            randomize_all_smiles = false
+            internal_diversity = true
+            """
     
         stage2_config_filename = f"{args.stage}.toml"
 
@@ -317,6 +309,67 @@ internal_diversity = true
         subprocess.run(["sbatch", "TL.sh"])
 
     elif args.stage == 'RL_gen':
+        # Find best checkpoint
+        os.chdir("Stage_2_TL")
+        checkpoint_files = glob.glob("*.chkpt")
+        with open ("TL.log", "r") as log:
+            lines = log.readlines()
+            best_checkpoint = None
+            for line in lines:
+                if "Best validation loss" in line:
+                    best_checkpoint = line.split()[-1]
+                    print(f"Best checkpoint found: {best_checkpoint}")
+                    break
+        for file in checkpoint_files:
+            if file.split('.')[-2] == best_checkpoint:
+                best_checkpoint_path = os.path.join(os.getcwd(), file)
+                print(f"Best checkpoint path: {best_checkpoint_path}")
+                break
+
+        if not os.path.exists("Stage_3_RLgen"):
+            os.mkdir("Stage_3_RLgen")
+        shutil.copy(best_checkpoint_path, "Stage_3_RLgen/")
+        shutil.copy(args.prior, "Stage_3_RLgen/")
+        os.chdir("Stage_3_RLgen")
+        print(f"Current working directory: {os.getcwd()}")
+
+        config = {
+                "run_type":       "staged_learning",
+                "device":         "cuda:0",
+                "tb_logdir":      "tb_logs",
+                "json_out_config": "RL_gen.json",
+                "parameters": {
+                    "summary_csv_prefix": "RL_gen",
+                    "use_checkpoint":     False,
+                    "purge_memories":     False,
+                    "prior_file":         {args.prior},         # always the base prior
+                    "agent_file":         {best_checkpoint_path},    # TL output (or base prior if no TL)
+                    "batch_size":         256,
+                    "unique_sequences":   True,
+                    "randomize_smiles":   True,
+                    "tb_isim":            False,
+                },
+                "learning_strategy": {
+                    "type":  "dap",
+                    "sigma": 256,
+                    "rate":  0.0001,
+                },
+                "diversity_filter": {
+                    "type":               "ScaffoldSimilarity",
+                    "bucket_size":        100,
+                    "minscore":           0.7,
+                    "minsimilarity":      0.3,
+                    "penalty_multiplier": 1.0,
+                },
+                "inception_parameters": {
+                    "memory_size": 50,
+                    "sample_size": 10,
+                }
+            }
+        
+        with open("RL_gen.toml", 'w') as f:
+                toml.dump(config, f)
+     
         pass
     
     
