@@ -120,7 +120,7 @@ def main():
     args = parser.parse_args()
 
     # Load necessary modules for cluster to not die
-    os.system(f"module load {modules}")
+    os.system(f"{modules}")
 
     if args.stage == 'RL_prep':
         '''
