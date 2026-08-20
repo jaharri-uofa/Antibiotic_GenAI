@@ -51,6 +51,227 @@ def molecule_features(smiles: str) -> dict | None:
         "SlogP":            rdMolDescriptors.CalcCrippenDescriptors(mol)[0],
     }
 
+# ── Scoring Components ────────────────────────────────────────────────
+
+CUSTOM_ALERT_SMARTS = [
+    "[*;r{8-17}]",
+    "[#8][#8]",
+    "[#6;+]",
+    "[#16][#16]",
+    "[#7;!n][S;!$(S(=O)=O)]",
+    "[#7;!n][#7;!n]",
+    "C#C",
+    "C(=[O,S])[O,S]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
+    "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
+    "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
+    "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]",
+]
+ 
+ 
+def custom_alerts_component(weight=0.6):
+    """Filters out molecules containing unwanted/reactive substructures."""
+    return {
+        "custom_alerts": {
+            "endpoint": [
+                {
+                    "name": "Alerts",
+                    "weight": weight,
+                    "params": {"smarts": CUSTOM_ALERT_SMARTS},
+                }
+            ]
+        }
+    }
+
+
+def qed_component(weight=0.4):
+    """Drug-likeness (QED)."""
+    return {"QED": {"endpoint": [{"name": "QED", "weight": weight}]}}
+ 
+ 
+def molecular_weight_component(weight=0.3, low=200.0, high=500.0):
+    """Keeps molecular weight within a lead/drug-like window."""
+    return {
+        "MolecularWeight": {
+            "endpoint": [
+                {
+                    "name": "Molecular weight",
+                    "weight": weight,
+                    "transform": {
+                        "type": "double_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "coef_div": high,
+                        "coef_si": 20.0,
+                        "coef_se": 20.0,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def slogp_component(weight=0.2, low=1, high=4):
+    """Penalizes molecules that are too hydrophilic/hydrophobic (cLogP)."""
+    return {
+        "SlogP": {
+            "endpoint": [
+                {
+                    "name": "SlogP (RDKit)",
+                    "weight": weight,
+                    "transform": {
+                        "type": "reverse_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "k": 0.5,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def tpsa_component(weight=0.2, low=0.0, high=140.0):
+    """Favors topological polar surface area compatible with permeability."""
+    return {
+        "TPSA": {
+            "endpoint": [
+                {
+                    "name": "TPSA",
+                    "weight": weight,
+                    "transform": {
+                        "type": "double_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "coef_div": high,
+                        "coef_si": 20.0,
+                        "coef_se": 20.0,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def num_rot_bond_component(weight=0.2, low=0, high=10):
+    """Penalizes overly flexible molecules (rotatable bond count)."""
+    return {
+        "NumRotBond": {
+            "endpoint": [
+                {
+                    "name": "Number of rotatable bonds",
+                    "weight": weight,
+                    "transform": {
+                        "type": "reverse_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "k": 0.5,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def hbond_acceptors_component(weight=0.15, low=8, high=10):
+    """Lipinski HB acceptor count."""
+    return {
+        "HBondAcceptors": {
+            "endpoint": [
+                {
+                    "name": "Number of HB acceptors (Lipinski)",
+                    "weight": weight,
+                    "transform": {
+                        "type": "reverse_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "k": 0.5,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def hbond_donors_component(weight=0.15, low=0, high=4):
+    """Lipinski HB donor count."""
+    return {
+        "HBondDonors": {
+            "endpoint": [
+                {
+                    "name": "Number of HB donors (Lipinski)",
+                    "weight": weight,
+                    "transform": {
+                        "type": "reverse_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "k": 0.5,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def num_aromatic_rings_component(weight=0.15, low=0, high=3):
+    """Caps the number of aromatic rings."""
+    return {
+        "NumAromaticRings": {
+            "endpoint": [
+                {
+                    "name": "Number of aromatic rings",
+                    "weight": weight,
+                    "transform": {
+                        "type": "reverse_sigmoid",
+                        "high": high,
+                        "low": low,
+                        "k": 0.5,
+                    },
+                }
+            ]
+        }
+    }
+ 
+ 
+def num_stereo_centers_component(weight=0.4, low=0):
+    """Discourages excess stereocenters (synthesis/QC burden)."""
+    return {
+        "NumAtomStereoCenters": {
+            "endpoint": [
+                {
+                    "name": "Stereo",
+                    "weight": weight,
+                    "transform": {"type": "left_step", "low": low},
+                }
+            ]
+        }
+    }
+ 
+ 
+def sa_score_component(weight=0.4):
+    """Synthetic accessibility score - lower is easier to synthesize."""
+    return {"SAScore": {"endpoint": [{"name": "SA score", "weight": weight}]}}
+
+def build_gen_scoring_components():
+    """Scoring profile for the RL_gen (final generative) stage: tighter
+    drug-likeness / Lipinski-style filters plus synthetic accessibility,
+    since these molecules are candidates for actual synthesis and testing."""
+    return [
+        custom_alerts_component(weight=0.7),
+        qed_component(weight=0.4),
+        molecular_weight_component(weight=0.3, low=200.0, high=500.0),
+        slogp_component(weight=0.25, low=1, high=4),
+        tpsa_component(weight=0.25),
+        num_rot_bond_component(weight=0.2),
+        hbond_acceptors_component(weight=0.15),
+        hbond_donors_component(weight=0.15),
+        num_aromatic_rings_component(weight=0.15),
+        sa_score_component(weight=0.4),
+    ]
+
+
 def main():
 
     # Reinforcement lerning on pubchem data set -> transfer learnin using GLPG inhibitors -> RL to generate novel GLPG inhibitors
@@ -263,11 +484,12 @@ def main():
         print(f"Current working directory: {os.getcwd()}")
 
         config = {
-                "run_type":       "staged_learning",
+            "run_type":       "staged_learning",
                 "device":         "cuda:0",
                 "tb_logdir":      "tb_logs",
                 "json_out_config": "RL_gen.json",
                 "parameters": {
+
                     "summary_csv_prefix": "RL_gen",
                     "use_checkpoint":     False,
                     "purge_memories":     False,
@@ -278,11 +500,14 @@ def main():
                     "randomize_smiles":   True,
                     "tb_isim":            False,
                 },
+
                 "learning_strategy": {
+
                     "type":  "dap",
                     "sigma": 256,
                     "rate":  0.0001,
                 },
+                
                 "diversity_filter": {
                     "type":               "ScaffoldSimilarity",
                     "bucket_size":        100,
@@ -290,6 +515,20 @@ def main():
                     "minsimilarity":      0.3,
                     "penalty_multiplier": 1.0,
                 },
+
+                "stage": [
+                    {
+                        "chkpt_file": "RL_gen.chkpt",
+                        "termination": "simple",
+                        "max_score": 0.8,
+                        "min_steps": 50,
+                        "max_steps": 300,
+                        "scoring": {
+                            "type": "geometric_mean",
+                            "component": build_gen_scoring_components(),
+                        },
+                    }
+                ],
             }
         
         with open("RL_gen.toml", 'w') as f:

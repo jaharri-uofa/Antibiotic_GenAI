@@ -34,16 +34,18 @@ if [[ ! -e "Stage_1_RL_prep/RL_prep.chkpt" ]]; then
 fi
 
 if [[ -e "Stage_1_RL_prep/RL_prep.chkpt" ]]; then
-    echo "Running REINVENT4. Stage = Transfer Learning."
-    python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
-    cd Stage_2_TL
-    reinvent -l TL.log TL.toml
-    echo "Exit code: $?"
-    cd ..
+    if [[ ! -e "Stage_2_TL/TL_reinvent.model.50.chkpt" ]]; then
+        echo "Running REINVENT4. Stage = Transfer Learning."
+        python scripts/Gen.py --stage TL --checkpoint Stage_1_RL_prep/RL_prep.chkpt --smiles_csv GlpG.csv
+        cd Stage_2_TL
+        reinvent -l TL.log TL.toml
+        echo "Exit code: $?"
+        cd ..
+    fi
 fi
 
 if [[ -e "Stage_2_TL/TL_reinvent.model.50.chkpt" ]]; then
-    echo "Running REINVNENT4. Stage = Reinforcement Learning"
+    echo "Running REINVENT4. Stage = Reinforcement Learning"
     python scripts/Gen.py --stage RL_gen --prior reinvent_pubchem.prior
     cd Stage_3_RLgen
     reinvent -l RL_gen.log RL_gen.toml
